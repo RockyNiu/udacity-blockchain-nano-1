@@ -120,7 +120,7 @@ class Blockchain {
                 const timestamp = parseInt(message.split(':')[1]);
                 const currentTime = parseInt(new Date().getTime().toString().slice(0, -3));
                 if ((currentTime - timestamp < self._TIME_ELAPSED_THRESHOLD) && bitcoinMessage.verify(message, address, signature)) {
-                    const block = new BlockClass.Block({ star, address, timestamp });
+                    const block = new BlockClass.Block({ star, address, message, signature });
                     await self._addBlock(block);
                     resolve(block);
                 }
