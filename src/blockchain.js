@@ -66,21 +66,27 @@ class Blockchain {
     _addBlock(block) {
         let self = this;
         return new Promise(async (resolve, reject) => {
-            const height = await self.getChainHeight();
-            const preBlock = await self.getBlockByHeight(height);
-            if (preBlock) {
-                block.previousBlockHash = preBlock.hash;
+            try {
+                const height = await self.getChainHeight();
+                const preBlock = await self.getBlockByHeight(height);
+                if (preBlock) {
+                    block.previousBlockHash = preBlock.hash;
+                }
+                block.height = self.chain.length;
+                block.time = new Date().getTime().toString().slice(0, -3);
+                block.hash = SHA256(JSON.stringify(block)).toString();
+                const errorLog = await self.validateChain();
+                if (errorLog.length > 0) {
+                    reject(new Error('The blockchain is not validate'));
+                }
+                self.chain.push(block);
+                self.height = self.height + 1;
+                resolve(block);
             }
-            block.height = self.chain.length;
-            block.time = new Date().getTime().toString().slice(0, -3);
-            block.hash = SHA256(JSON.stringify(block)).toString();
-            const isValid = await self.validateChain();
-            if (!isValid) {
-                reject(new Error('The blockchain is not validate'));
+            catch (error) {
+                console.error('Fail to add a block');
+                reject(new Error('Fail to add a block'));
             }
-            self.chain.push(block);
-            self.height = self.height + 1;
-            resolve();
         });
     }
 
@@ -183,15 +189,22 @@ class Blockchain {
      */
     getStarsByWalletAddress(address) {
         let self = this;
-        return new Promise((resolve, reject) => {
-            const stars = self.chain.reduce((array, b) => {
-                const data = b.getBData();
-                if (data && data.address === address) {
-                    array.push({ star: data.star, owner: data.address });
+        return new Promise(async (resolve, reject) => {
+            try {
+                const stars = [];
+                for (let i = 0; i < self.chain.length; i++) {
+                    const block = await self.getBlockByHeight(i);
+                    const data = await block.getBData();
+                    if (data && data.address === address) {
+                        stars.push({ star: data.star, owner: data.address });
+                    }
                 }
-                return array;
-            }, []);
-            resolve(stars);
+                resolve(stars);
+            }
+            catch (error) {
+                console.error(`Fail to get starts by the address ${address}`);
+                reject (new Error('Fail to get starts by address'));
+            }
         });
     }
 
@@ -222,11 +235,10 @@ class Blockchain {
             if (errorLog.length > 0) {
                 console.error(`Block errors = ${errorLog.length}`);
                 console.error(`Blocks: ${errorLog}`);
-                resolve(false);
             } else {
                 console.log('No errors detected');
-                resolve(true);
             }
+            resolve(errorLog);
         });
     }
 

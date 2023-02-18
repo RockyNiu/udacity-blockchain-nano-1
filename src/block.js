@@ -72,22 +72,23 @@ class Block {
         // Getting the encoded data saved in the Block
         // Decoding the data to retrieve the JSON representation of the object
         // Parse the data to an object to be retrieve.
-        let obj;
-        if (this.height === 0) {
-            return;
-        }
-        try {
-            const decoded = hex2ascii(this.body);
-            obj = JSON.parse(decoded);
-        }
-        catch (error) {
-            console.error(`Fail to get data from Block #${this.height}!`);
-            throw ('fail to get block data');
-        }
-        // Resolve with the data if the object isn't the Genesis block
-        return obj;
+        let self = this;
+        return new Promise((resolve, reject) => {
+            try {
+                if (self.height === 0) {
+                    console.log(`It's the Genesis block`);
+                    resolve();
+                }
+                const decoded = hex2ascii(this.body);
+                const obj = JSON.parse(decoded);
+                resolve(obj);
+            }
+            catch (error) {
+                console.error(`Fail to get data from Block #${self.height}!`);
+                reject ('fail to get block data');
+            }
+        });
     }
-
 }
 
 module.exports.Block = Block;                    // Exposing the Block class as a module
