@@ -66,10 +66,6 @@ class Blockchain {
     _addBlock(block) {
         let self = this;
         return new Promise(async (resolve, reject) => {
-            const isValid = await self.validateChain();
-            if (!isValid) {
-                reject(new Error('The blockchain is not validate'));
-            }
             const height = await self.getChainHeight();
             const preBlock = await self.getBlockByHeight(height);
             if (preBlock) {
@@ -78,6 +74,10 @@ class Blockchain {
             block.height = self.chain.length;
             block.time = new Date().getTime().toString().slice(0, -3);
             block.hash = SHA256(JSON.stringify(block)).toString();
+            const isValid = await self.validateChain();
+            if (!isValid) {
+                reject(new Error('The blockchain is not validate'));
+            }
             self.chain.push(block);
             self.height = self.height + 1;
             resolve();
