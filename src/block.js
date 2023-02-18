@@ -54,7 +54,7 @@ class Block {
             // Returning the Block is valid
             else {
                 self.hash = hash;
-                resolve(ture);
+                resolve(true);
             }
         });
     }

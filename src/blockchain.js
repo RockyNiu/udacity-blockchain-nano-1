@@ -66,6 +66,10 @@ class Blockchain {
     _addBlock(block) {
         let self = this;
         return new Promise(async (resolve, reject) => {
+            const isValid = await self.validateChain();
+            if (!isValid) {
+                reject();
+            }
             const height = await self.getChainHeight();
             const preBlock = await self.getBlockByHeight(height);
             if (preBlock) {
@@ -205,7 +209,7 @@ class Blockchain {
             for (let i = 0; i < blockchain.length - 1; i++) {
                 // validate block
                 const block = blockchain[i];
-                if (!block.validate()) {
+                if (!await block.validate()) {
                     errorLog.push(i);
                 }
                 // compare blocks hash link
