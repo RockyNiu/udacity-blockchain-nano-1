@@ -25,7 +25,7 @@ class Blockchain {
     constructor() {
         this.chain = [];
         this.height = -1;
-        this._TIME_ELAPSED_THRESHOLD = 60 * 100; // 5 mins
+        this._TIME_ELAPSED_THRESHOLD = 60 * 5; // 5 mins
         this.initializeChain();
     }
 
