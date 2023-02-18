@@ -179,7 +179,7 @@ class Blockchain {
             const stars = self.chain.reduce(async (array, b) => {
                 const data = await b.getBData();
                 if (data && data.address === address) {
-                    array.push(data.star);
+                    array.push({star: data.star, owner: address});
                 }
                 return array;
             }, []);
