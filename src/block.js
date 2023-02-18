@@ -11,6 +11,9 @@
 
 const SHA256 = require('crypto-js/sha256');
 const hex2ascii = require('hex2ascii');
+const debug = require('debug');
+const warnLog = debug('block:warn');
+const errorLog = debug('block:error');
 
 class Block {
 
@@ -38,22 +41,14 @@ class Block {
     validate() {
         let self = this;
         return new Promise((resolve, reject) => {
-            // Save in auxiliary variable the current block hash
-            const hash = self.hash;
-                                            
-            // Recalculate the hash of the Block
-            // Comparing if the hashes changed
-            self.hash = null;
-            const validBlockHash = SHA256(JSON.stringify(self)).toString();
-            
+            const isValid = (self.hash === SHA256(JSON.stringify({...self, hash: null})).toString());          
             // Returning the Block is not valid
-            if (hash !== validBlockHash) {
-                console.warn(`Block #${self.height} has invalid hash!`);
+            if (!isValid) {
+                warnLog(`Block #${self.height} has invalid hash!`);
                 resolve(false);
             } 
             // Returning the Block is valid
             else {
-                self.hash = hash;
                 resolve(true);
             }
         });
@@ -76,7 +71,6 @@ class Block {
         return new Promise((resolve, reject) => {
             try {
                 if (self.height === 0) {
-                    // console.log(`It's the Genesis block`);
                     resolve();
                 }
                 const decoded = hex2ascii(this.body);
@@ -84,7 +78,7 @@ class Block {
                 resolve(obj);
             }
             catch (error) {
-                console.error(`Fail to get data from Block #${self.height}!`);
+                errorLog(`Fail to get data from Block #${self.height}!`);
                 reject ('fail to get block data');
             }
         });

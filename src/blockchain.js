@@ -11,6 +11,9 @@
 const SHA256 = require('crypto-js/sha256');
 const BlockClass = require('./block.js');
 const bitcoinMessage = require('bitcoinjs-message');
+const debug = require('debug');
+const log = debug('blockchain:log');
+const errorLog = debug('blockchain:error');
 
 class Blockchain {
 
@@ -84,7 +87,7 @@ class Blockchain {
                 resolve(block);
             }
             catch (error) {
-                console.error('Fail to add a block');
+                error('Fail to add a block');
                 reject(new Error('Fail to add a block'));
             }
         });
@@ -135,12 +138,12 @@ class Blockchain {
                     resolve(block);
                 }
                 else {
-                    console.error("Failed to submit star");
+                    errorLog("Failed to submit star");
                     reject(new Error("Failed to submit star"));
                 }
             }
             catch (error) {
-                console.error(`Failed to submit star`);
+                errorLog(`Failed to submit star`);
                 reject(new Error("Failed to submit star"));
             }
         });
@@ -202,7 +205,7 @@ class Blockchain {
                 resolve(stars);
             }
             catch (error) {
-                console.error(`Fail to get starts by the address ${address}`);
+                error(`Fail to get starts by the address ${address}`);
                 reject (new Error('Fail to get starts by address'));
             }
         });
@@ -216,29 +219,29 @@ class Blockchain {
      */
     validateChain() {
         let self = this;
-        let errorLog = [];
+        let errorLogs = [];
         return new Promise(async (resolve, reject) => {
             const blockchain = self.chain;
             for (let i = 0; i < blockchain.length - 1; i++) {
                 // validate block
                 const block = blockchain[i];
                 if (!await block.validate()) {
-                    errorLog.push(i);
+                    errorLogs.push(i);
                 }
                 // compare blocks hash link
                 const blockHash = block.hash;
                 const nextPreviousHash = blockchain[i + 1].previousBlockHash;
                 if (blockHash !== nextPreviousHash) {
-                    errorLog.push(i);
+                    errorLogs.push(i);
                 }
             }
-            if (errorLog.length > 0) {
-                console.error(`Block errors = ${errorLog.length}`);
-                console.error(`Blocks: ${errorLog}`);
+            if (errorLogs.length > 0) {
+                errorLog(`Block errors = ${errorLogs.length}`);
+                errorLog(`Blocks: ${errorLogs}`);
             } else {
-                console.log('No errors detected');
+                log('No errors detected');
             }
-            resolve(errorLog);
+            resolve(errorLogs);
         });
     }
 
