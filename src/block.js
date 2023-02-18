@@ -76,7 +76,7 @@ class Block {
         return new Promise((resolve, reject) => {
             try {
                 if (self.height === 0) {
-                    console.log(`It's the Genesis block`);
+                    // console.log(`It's the Genesis block`);
                     resolve();
                 }
                 const decoded = hex2ascii(this.body);
