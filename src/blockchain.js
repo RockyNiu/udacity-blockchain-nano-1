@@ -34,8 +34,8 @@ class Blockchain {
      * Passing as a data `{data: 'Genesis Block'}`
      */
     async initializeChain() {
-        if( this.height === -1){
-            let block = new BlockClass.Block({data: 'Genesis Block'});
+        if (this.height === -1) {
+            let block = new BlockClass.Block({ data: 'Genesis Block' });
             await this._addBlock(block);
         }
     }
@@ -64,7 +64,16 @@ class Blockchain {
     _addBlock(block) {
         let self = this;
         return new Promise(async (resolve, reject) => {
-           
+            let height = await self.getChainHeight();
+            const preBlock = await self.getBlockByHeight(height);
+            if (preBlock) {
+                block.previousBlockHash = preBlock.hash;
+            }
+            block.height = self.chain.length;
+            block.time = new Date().getTime().toString().slice(0, -3);
+            block.hash = SHA256(JSON.stringify(newBlock)).toString();
+            self.chain.push(block);
+            self.height = self.heigh + 1;
         });
     }
 
@@ -78,7 +87,9 @@ class Blockchain {
      */
     requestMessageOwnershipVerification(address) {
         return new Promise((resolve) => {
-            
+            const timestamp = new Date().getTime().toString().slice(0, -3);
+            const message = `${address}:${timestamp}:starRegistry`;
+            resolve(message);
         });
     }
 
@@ -102,7 +113,22 @@ class Blockchain {
     submitStar(address, message, signature, star) {
         let self = this;
         return new Promise(async (resolve, reject) => {
-            
+            try {
+                const timestamp = parseInt(message.split(':')[1]);
+                const currentTime = parseInt(new Date().getTime().toString().slice(0, -3));
+                if ((currentTime - timestamp < 60 * 5) && bitcoinMessage.verify(message, address, signature)) {
+                    const block = new BlockClass.Block({ data: { star: star, message: message } });
+                    self._addBlock(block);
+                    resolve(block);
+                }
+                else {
+                    reject();
+                }
+            }
+            catch (error) {
+                console.error(`Failed to submit star`);
+                reject();
+            }
         });
     }
 
@@ -115,7 +141,12 @@ class Blockchain {
     getBlockByHash(hash) {
         let self = this;
         return new Promise((resolve, reject) => {
-           
+            let block = self.chain.filter(p => p.hash === hash)[0];
+            if (block) {
+                resolve(block);
+            } else {
+                resolve(null);
+            }
         });
     }
 
@@ -128,7 +159,7 @@ class Blockchain {
         let self = this;
         return new Promise((resolve, reject) => {
             let block = self.chain.filter(p => p.height === height)[0];
-            if(block){
+            if (block) {
                 resolve(block);
             } else {
                 resolve(null);
@@ -142,11 +173,17 @@ class Blockchain {
      * Remember the star should be returned decoded.
      * @param {*} address 
      */
-    getStarsByWalletAddress (address) {
+    getStarsByWalletAddress(address) {
         let self = this;
-        let stars = [];
         return new Promise((resolve, reject) => {
-            
+            const stars = self.chain.reduce(async (array, b) => {
+                const data = await b.getBData();
+                if (data && data.address === address) {
+                    array.push(data.star);
+                }
+                return array;
+            }, []);
+            resolve(stars);
         });
     }
 
@@ -160,7 +197,28 @@ class Blockchain {
         let self = this;
         let errorLog = [];
         return new Promise(async (resolve, reject) => {
-            
+            const blockchain = self.chain;
+            for (let i = 0; i < blockchain.length - 1; i++) {
+                // validate block
+                const block = blockchain[i];
+                if (!block.validate()) {
+                    errorLog.push(i);
+                } 
+                // compare blocks hash link
+                const blockHash = block.hash;
+                const nextPreviousHash = blockchain[i + 1].previousBlockHash;
+                if (blockHash !== nextPreviousHash) {
+                    errorLog.push(i);
+                }
+            }
+            if (errorLog.length > 0) {
+                console.error(`Block errors = ${errorLog.length}`);
+                console.error(`Blocks: ${errorLog}`);
+                resolve(false);
+            } else {
+                console.log('No errors detected');
+                resolve(true);
+            }
         });
     }
 
