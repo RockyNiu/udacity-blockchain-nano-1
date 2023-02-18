@@ -68,7 +68,7 @@ class Blockchain {
         return new Promise(async (resolve, reject) => {
             const isValid = await self.validateChain();
             if (!isValid) {
-                reject();
+                reject(new Error('The blockchain is not validate'));
             }
             const height = await self.getChainHeight();
             const preBlock = await self.getBlockByHeight(height);
