@@ -25,6 +25,7 @@ class Blockchain {
     constructor() {
         this.chain = [];
         this.height = -1;
+        this._TIME_ELAPSED_THRESHOLD = 60 * 100; // 5 mins
         this.initializeChain();
     }
 
@@ -44,8 +45,9 @@ class Blockchain {
      * Utility method that return a Promise that will resolve with the height of the chain
      */
     getChainHeight() {
+        let self = this;
         return new Promise((resolve, reject) => {
-            resolve(this.height);
+            resolve(self.height);
         });
     }
 
@@ -64,7 +66,7 @@ class Blockchain {
     _addBlock(block) {
         let self = this;
         return new Promise(async (resolve, reject) => {
-            let height = await self.getChainHeight();
+            const height = await self.getChainHeight();
             const preBlock = await self.getBlockByHeight(height);
             if (preBlock) {
                 block.previousBlockHash = preBlock.hash;
@@ -73,7 +75,8 @@ class Blockchain {
             block.time = new Date().getTime().toString().slice(0, -3);
             block.hash = SHA256(JSON.stringify(block)).toString();
             self.chain.push(block);
-            self.height = self.heigh + 1;
+            self.height = self.height + 1;
+            resolve();
         });
     }
 
@@ -116,18 +119,19 @@ class Blockchain {
             try {
                 const timestamp = parseInt(message.split(':')[1]);
                 const currentTime = parseInt(new Date().getTime().toString().slice(0, -3));
-                if ((currentTime - timestamp < 60 * 5) && bitcoinMessage.verify(message, address, signature)) {
-                    const block = new BlockClass.Block({ data: { star: star, message: message } });
-                    self._addBlock(block);
+                if ((currentTime - timestamp < self._TIME_ELAPSED_THRESHOLD) && bitcoinMessage.verify(message, address, signature)) {
+                    const block = new BlockClass.Block({ star, address, timestamp });
+                    await self._addBlock(block);
                     resolve(block);
                 }
                 else {
-                    reject();
+                    console.error("Failed to submit star");
+                    reject(new Error("Failed to submit star"));
                 }
             }
             catch (error) {
                 console.error(`Failed to submit star`);
-                reject();
+                reject(new Error("Failed to submit star"));
             }
         });
     }
@@ -176,10 +180,10 @@ class Blockchain {
     getStarsByWalletAddress(address) {
         let self = this;
         return new Promise((resolve, reject) => {
-            const stars = self.chain.reduce(async (array, b) => {
-                const data = await b.getBData();
+            const stars = self.chain.reduce((array, b) => {
+                const data = b.getBData();
                 if (data && data.address === address) {
-                    array.push({star: data.star, owner: address});
+                    array.push({ star: data.star, owner: data.address });
                 }
                 return array;
             }, []);
@@ -203,7 +207,7 @@ class Blockchain {
                 const block = blockchain[i];
                 if (!block.validate()) {
                     errorLog.push(i);
-                } 
+                }
                 // compare blocks hash link
                 const blockHash = block.hash;
                 const nextPreviousHash = blockchain[i + 1].previousBlockHash;

@@ -77,8 +77,7 @@ class Block {
             return;
         }
         try {
-            const buffer = Buffer.from(this.body);
-            const decoded = hex2ascii(buffer);
+            const decoded = hex2ascii(this.body);
             obj = JSON.parse(decoded);
         }
         catch (error) {
